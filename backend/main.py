@@ -31,8 +31,10 @@ app = FastAPI(title="SimpleRAG Chatbot API")
 
 # CORS Setup
 origins = [
-    "http://localhost:5173",  # Vite default
+    "http://localhost:5173",
     "http://localhost:3000",
+    "http://35.208.135.178",
+    "http://35.208.135.178:5173",
 ]
 
 app.add_middleware(
@@ -94,7 +96,7 @@ class ChatResponse(BaseModel):
     response: str
 
 
-@app.post("/upload")
+@app.post("/api/upload")
 def upload_file(file: UploadFile = File(...)):
     global index
     try:
@@ -145,7 +147,7 @@ def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     global index
     current_index = get_index()

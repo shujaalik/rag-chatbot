@@ -18,7 +18,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Optional: Add custom nginx config if we need to handle client-side routing fallback
 # For now, default is likely okay if just root, but safe for SPA:
 RUN echo 'server { \
-    listen 80; \
+    listen 5173; \
     location / { \
         root /usr/share/nginx/html; \
         index index.html index.htm; \
@@ -26,6 +26,6 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+EXPOSE 5173
 
 CMD ["nginx", "-g", "daemon off;"]

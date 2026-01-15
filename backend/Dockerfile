@@ -20,8 +20,8 @@ COPY backend ./backend
 RUN mkdir -p data storage
 
 # Expose port
-EXPOSE 8000
+EXPOSE 3000
 
 # Run command
 # Using --loop asyncio because nest_asyncio is incompatible with uvloop
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--loop", "asyncio"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "3000", "--loop", "asyncio"]
