@@ -26,7 +26,7 @@ install:
 # Run Backend
 run-backend:
 	@echo "Starting Backend..."
-	$(UVICORN) backend.main:app --reload --port 8000
+	$(UVICORN) backend.main:app --reload --port 8000 --loop asyncio
 
 # Run Frontend
 run-frontend:

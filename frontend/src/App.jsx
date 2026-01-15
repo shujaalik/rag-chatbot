@@ -31,9 +31,17 @@ function App() {
     formData.append("file", file);
 
     try {
+      console.log("uploading...")
       await axios.post("http://localhost:8000/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          console.log(`Upload progress: ${percentCompleted}%`);
+        },
       });
+      console.log("done")
       setMessages((prev) => [
         ...prev,
         { role: "bot", content: `Successfully indexed: ${file.name}. Ask me anything about it!` },
@@ -153,8 +161,8 @@ function App() {
 
               <div
                 className={`max-w-[80%] md:max-w-[70%] p-4 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed ${msg.role === "user"
-                    ? "bg-indigo-600 text-white rounded-br-none"
-                    : "bg-white text-gray-800 border border-gray-100 rounded-bl-none"
+                  ? "bg-indigo-600 text-white rounded-br-none"
+                  : "bg-white text-gray-800 border border-gray-100 rounded-bl-none"
                   }`}
               >
                 {msg.role === "bot" && loading && idx === messages.length - 1 ? (

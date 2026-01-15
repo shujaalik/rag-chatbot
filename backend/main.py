@@ -1,5 +1,7 @@
 import os
 import shutil
+import nest_asyncio
+nest_asyncio.apply()
 from typing import List
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,10 +14,10 @@ from llama_index.core import (
     VectorStoreIndex,
     StorageContext,
     load_index_from_storage,
+    PromptTemplate,
     Settings,
 )
-from llama_index.llms.gemini import Gemini
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from .gemini_service import get_embedding_model, get_llm_model
 
 # Load environment variables
 load_dotenv()
@@ -45,15 +47,13 @@ app.add_middleware(
 index = None
 
 # Configure LlamaIndex Settings
-# We use HuggingFace embeddings to generate vectors locally
-Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
+# Use Gemini for both Embeddings and LLM
+Settings.embed_model = get_embedding_model()
 
-# Check for Gemini API Key and configure LLM
-google_api_key = os.getenv("GOOGLE_API_KEY")
-if google_api_key:
-    Settings.llm = Gemini(model="models/gemini-1.5-flash", api_key=google_api_key)
-else:
-    print("WARNING: GOOGLE_API_KEY not found. Chat functionality may fail.")
+try:
+    Settings.llm = get_llm_model()
+except Exception as e:
+    print(f"WARNING: LLM configuration failed: {e}. Chat functionality may fail.")
 
 
 def get_index():
@@ -79,6 +79,7 @@ def get_index():
 
 @app.on_event("startup")
 async def startup_event():
+    print("Starting up...")
     # Ensure data directory exists
     os.makedirs(DATA_DIR, exist_ok=True)
     # Attempt to load index
@@ -94,9 +95,10 @@ class ChatResponse(BaseModel):
 
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+def upload_file(file: UploadFile = File(...)):
     global index
     try:
+        print("Uploading file...")
         # Save file to data directory
         file_path = os.path.join(DATA_DIR, file.filename)
         with open(file_path, "wb") as buffer:
@@ -110,16 +112,17 @@ async def upload_file(file: UploadFile = File(...)):
         # Simplest approach: Load the specific file and create/update index.
         # But VectorStoreIndex.from_documents usually creates a new one unless we insert.
         # For simplicity in this "scaffold", we will recreate the index from the data dir to ensure consistency.
-        
+        print("Loading data...")
         documents = SimpleDirectoryReader(input_files=[file_path]).load_data()
         
         # In a real app we might want to update the existing index, 
         # but 'from_documents' creates a fresh one. 
         # Given the prompt implies "upload a PDF... index it", we'll create a new index for simplicity
         # or verify if we can insert.
-        
+        print("Indexing...")
         if index is None:
              index = VectorStoreIndex.from_documents(documents)
+             print("Index created successfully.")
         else:
             # Insert logic or just rebuild. Rebuilding is safer for "from scratch" MVP to avoid duplication if re-uploaded.
             # Let's rebuild from the single file to keep it very specific to "User uploads PDF -> Index it"
@@ -128,9 +131,12 @@ async def upload_file(file: UploadFile = File(...)):
             # Implies single-doc RAG or at least session-based.
             # Let's simple-index the uploaded file.
             index = VectorStoreIndex.from_documents(documents)
+            print("Index created successfully.")
 
         # Persist
+        print("Persisting...")
         index.storage_context.persist(persist_dir=PERSIST_DIR)
+        print("Persisted successfully.")
 
         return {"message": f"Successfully uploaded and indexed {file.filename}"}
 
@@ -148,9 +154,27 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=400, detail="No index found. Please upload a document first.")
 
     try:
-        query_engine = current_index.as_query_engine()
+        # Custom prompt to allow general knowledge
+        qa_prompt_tmpl = (
+            "Context information is below.\n"
+            "---------------------\n"
+            "{context_str}\n"
+            "---------------------\n"
+            "Given the context information and your prior knowledge, answer the query.\n"
+            "Query: {query_str}\n"
+            "Answer: "
+        )
+        qa_prompt = PromptTemplate(qa_prompt_tmpl)
+
+        query_engine = current_index.as_query_engine(text_qa_template=qa_prompt)
         response = query_engine.query(request.query)
+        print(f"DEBUG: Query: {request.query}")
+        print(f"DEBUG: Response: {response}")
+        print(f"DEBUG: Source Nodes: {len(response.source_nodes)}")
+        for i, node in enumerate(response.source_nodes):
+            print(f"DEBUG: Node {i}: {node.node.get_content()[:100]}...")
         return {"response": str(response)}
     except Exception as e:
         print(f"Chat Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+print("Chat endpoint")
