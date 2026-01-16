@@ -32,7 +32,7 @@ function App() {
 
     try {
       console.log("uploading...")
-      await axios.post("http://35.208.135.178/api/upload", formData, {
+      await axios.post("https://rag-chatbot-temp.shujaalik.com//api/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
@@ -66,7 +66,7 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await axios.post("http://35.208.135.178/api/chat", { query: userMessage });
+      const response = await axios.post("https://rag-chatbot-temp.shujaalik.com//api/chat", { query: userMessage });
       setMessages((prev) => [
         ...prev,
         { role: "bot", content: response.data.response },
