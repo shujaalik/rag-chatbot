@@ -35,7 +35,8 @@ origins = [
     "http://localhost:3000",
     "https://rag-chatbot-temp.shujaalik.com/",
     "https://rag-chatbot-temp.shujaalik.com/:5173",
-    "https://llm-pdc.web.app/"
+    "https://llm-pdc.web.app/",
+    "*"
 ]
 
 app.add_middleware(
