@@ -33,8 +33,8 @@ app = FastAPI(title="SimpleRAG Chatbot API")
 origins = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "http://35.208.135.178",
-    "http://35.208.135.178:5173",
+    "https://rag-chatbot-temp.shujaalik.com/",
+    "https://rag-chatbot-temp.shujaalik.com/:5173",
 ]
 
 app.add_middleware(
